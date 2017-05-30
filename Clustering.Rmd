@@ -1,0 +1,761 @@
+---
+title: "**Clustering Analysis**"
+fontsize: 12pt
+author: "Xiang Niu May 11, 2016"
+output: 
+  pdf_document:
+    fig_height: 5
+    fig_width: 6
+---
+1. Load packages and Data
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+library(Seurat)
+library(RColorBrewer)
+source("functions.R")
+load("hpfall.remv1.Robj")
+load("hpfall.remv2.Robj")
+col=colorRampPalette(rev(brewer.pal(n=10, name="RdBu")))
+```
+
+2. hpf12
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+# Subset data from preprocessed Seurat object
+hpf12=subsetData(hpfall.remv2,which.cells(hpfall.remv2,"hpf12"),do.scale = F)
+hpf12
+
+# Find variable gene  with 4 < Average expression and Dispersion > 2
+hpf12=mean.var.plot(hpf12)
+length(hpf12@var.genes)
+
+# Run a PCA using variable gene list
+hpf12=pca(hpf12,do.print = F)
+pcScree(hpf12,hpf12@var.genes,10)
+pcHeatmap(hpf12,1,do.balanced = T,col.use = col)
+pcHeatmap(hpf12,2,do.balanced = T,col.use = col)
+pcHeatmap(hpf12,3,do.balanced = T,col.use = col)
+pca.plot(hpf12,1,2)
+pca.plot(hpf12,1,3)
+
+# Calculate PCA scores for all genes (PCA projection)
+hpf12=project.pca(hpf12,do.print = F)
+
+# Visualize the full projected PCA, which now includes new genes which were not previously (use.full=TRUE)
+pcHeatmap(hpf12,1,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf12,2,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf12,3,use.full = T,do.balanced = T,col.use = col)
+
+# Do 200 random samplings to find significant genes, each time randomly permute 1% of genes
+# This returns a 'p-value' for each gene in each PC, based on how likely the gene/PC score woud have been observed by chance
+# Note that in this case we get the same result with 200 or 1000 samplings, so we do 200 here for expediency (20 PCs is used for significant test)
+hpf12=jackStraw(hpf12,num.replicate = 200,do.print = F,num.pc = 20)
+
+# The jackStraw plot compares the distribution of P-values for each PC with a uniform distribution (dashed line)
+# 'Significant' PCs will have a strong enrichment of genes with low p-values (solid curve above dashed line)
+jackStrawPlot.new(hpf12,PCs = 1:12) 
+# jackStraw plots show that none of PCs are significant enough, which suggests homogenous population.
+
+# With preliminary studies these cells are 12hpf TVC cells
+hpf12=set.ident(hpf12,ident.use = "12TVC")
+
+# Visualize known TVC cell markers
+vlnPlot(hpf12,c("GATA4/5/6","HAND/2","HAND1/2","NKX2-3"))
+
+# Write cell names into text files
+write.table(hpf12@cell.names,file = "12TVCCells.txt",sep = "\t")
+
+# Find 12TVC marker with 12 contamination cells
+mesen.cell=as.character(unlist(read.table("mesen.cellname.txt")))
+contam.cell=as.character(unlist(read.table("contam.cellname.txt")))
+contam.name=grep("hpf12",c(mesen.cell,contam.cell),value = T)
+hpf12.new=subsetData(hpfall.remv1,which.cells(hpfall.remv1,"hpf12"),do.scale = F)
+hpf12.new=set.ident(hpf12.new,hpf12@cell.names,"12TVC")
+hpf12.new=set.ident(hpf12.new,contam.name,"12Contam")
+tvc.marker=find.markers(hpf12.new,"12TVC","12Contam",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(tvc.marker[order(tvc.marker$myAUC,decreasing = T),],20)
+write.table(tvc.marker,"TVC.markers.txt",row.names = T,sep = "\t")
+
+# Draw a heatmap of all cells for these marker genes
+vlnPlot(hpf12,c("GATA4/5/6","HAND/1/2","NKX2-3","FZD4"),cols.use = "green")
+doHeatMap(hpf12,genes.use = rownames(head(tvc.marker[order(tvc.marker$myAUC,decreasing = T),],20)),remove.key = TRUE,slim.col.label = T,cex.col = 1.2,col.use = col,draw.line = F)
+```
+
+3. hpf14
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+# Subset data from preprocessed Seurat object
+hpf14=subsetData(hpfall.remv2,which.cells(hpfall.remv2,"hpf14"),do.scale = F)
+hpf14
+
+# Find variable gene  with 4 < Average expression and Dispersion > 2
+hpf14=mean.var.plot(hpf14)
+length(hpf14@var.genes)
+
+# Run a PCA using variable gene list
+hpf14=pca(hpf14,do.print = F)
+pcScree(hpf14,hpf14@var.genes,10)
+pcHeatmap(hpf14,1,do.balanced = T,col.use = col)
+pcHeatmap(hpf14,2,do.balanced = T,col.use = col)
+pcHeatmap(hpf14,3,do.balanced = T,col.use = col)
+pca.plot(hpf14,1,2)
+pca.plot(hpf14,1,3)
+
+# Calculate PCA scores for all genes (PCA projection)
+hpf14=project.pca(hpf14,do.print = F)
+
+# Visualize the full projected PCA, which now includes new genes which were not previously (use.full=TRUE)
+pcHeatmap(hpf14,1,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf14,2,use.full = T,do.balanced = T,col.use = col) #technical
+pcHeatmap(hpf14,3,use.full = T,do.balanced = T,col.use = col) #technical
+pcHeatmap(hpf14,4,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf14,5,use.full = T,do.balanced = T,col.use = col)
+
+# Do 200 random samplings to find significant genes, each time randomly permute 1% of genes
+# This returns a 'p-value' for each gene in each PC, based on how likely the gene/PC score woud have been observed by chance
+hpf14=jackStraw(hpf14,num.replicate = 200,do.print = F)
+
+# The jackStraw plot compares the distribution of P-values for each PC with a uniform distribution (dashed line)
+# 'Significant' PCs will have a strong enrichment of genes with low p-values (solid curve above dashed line)
+jackStrawPlot.new(hpf14,PCs = 1:12) 
+# In this case only PC1 is strongly significant and PC5 is significant, PC3 though significant contains technical genes
+
+# Run tSNE using significant PCs as input (spectral tSNE), we get distinct point clouds 
+hpf14=run_tsne(hpf14,max_iter=2000,dims.use = c(1,5))
+tsne.plot(hpf14,do.label = T,label.pt.size = 1)
+
+# Find cell clusters using Modularity optimization cluster detection.
+hpf14 = FindClusters(hpf14, pc.use = c(1,5), do.modularity = T,resolution = 1,prune.SNN = 0.1, print.output = 0,k.param = 20)
+tsne.plot(hpf14,do.label = T,label.pt.size = 1)
+
+# The validity of the clusters can be validated using a classification scheme based on linear SVMs.(In this case cutoff od 0.86 is selected to optimize clustering)
+hpf14 = BuildSNN(hpf14, pc.use=c(1,5), do.sparse = F,k.param = 20)
+hpf14 = ValidateClusters(hpf14, pc.use=c(1,5), min.connectivity = 0.001, acc.cutoff = 0.85)
+tsne.plot(hpf14,do.label = T,label.pt.size = 1)
+
+# Find cluster markers using ROC test with thresh.use = 1, min.pct = 0.5
+# The ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect). Though not a statistical test, it is often very useful for finding clean markers.
+cl1_14.markers=find.markers(hpf14,1,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl1_14.markers[order(cl1_14.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf14,c("TBX1/10","HAND/2"))
+# Based on prelimenary studies on TBX1/10- and HAND/2+ expression in TVC lineage, cluster 12 is FHP cells
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf14,c("LRP4/8","SLIT1/2/3"))
+
+# Find markers for cluster 4
+cl3_14.markers=find.markers(hpf14,3,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl3_14.markers[order(cl3_14.markers$myAUC,decreasing = T),],20) 
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf14,c("HAND/2","TBX1/10"))
+# Based on preliminary studies these TBX1/10- HAND/2+ cells are STVCs
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf14,c("KH2013:KH.S555.1_HTR7","TMSB15A"))
+
+# Write cell names into text files
+write.table(which.cells(hpf14,1),file = "14FHPCells.txt",sep = "\t")
+write.table(which.cells(hpf14,3),file = "14STVCCells.txt",sep = "\t")
+
+# Rename cluster identities
+hpf14=rename.ident(hpf14,1,"14FHP")
+hpf14=rename.ident(hpf14,3,"14STVC")
+
+# Visualize tSNE used color scheme FHP-red, STVC-yellow
+tsne.plot(hpf14,do.label = T,label.pt.size = 1,label.cex.text = 1.2,label.cols.use = c("red","yellow"))
+
+# Store FHP markers in text file
+FHP_14.markers=cl1_14.markers
+head(FHP_14.markers[order(FHP_14.markers$myAUC,decreasing = T),],20)
+write.table(FHP_14.markers,file = "FHP_14.markers.txt",sep = "\t")
+
+# Store STVC markers in text file
+STVC_14.markers=cl3_14.markers
+head(STVC_14.markers[order(STVC_14.markers$myAUC,decreasing = T),],20)
+write.table(STVC_14.markers,file = "STVC_14.markers.txt",sep = "\t")
+
+# Visualize markers of different clusters using violin plot and feature plot
+genes.viz.14=c("LRP4/8","SLIT1/2/3","TBX1/10","KH2013:KH.S555.1_HTR7")
+feature.plot(hpf14,genes.viz.14,pt.size = 1)
+vlnPlot(hpf14,genes.viz.14,col=c("red","yellow"))
+
+# Select markers for plotting on a Heatmap (top 20 positive markers with high classification power)
+marker14FHP=rownames(FHP_14.markers[order(FHP_14.markers$myAUC,decreasing = T)[1:20],])
+marker14STVC=rownames(STVC_14.markers[order(STVC_14.markers$myAUC,decreasing = T)[1:20],])
+marker.14=c(marker14FHP,marker14STVC)
+
+# Draw a heatmap of all cells for these marker genes
+doHeatMap(hpf14,genes.use = marker.14,remove.key = TRUE,slim.col.label = T,cex.col = 1.2,col.use = col,draw.line = F)
+```
+
+4. hpf20
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+# Subset data from preprocessed Seurat object
+hpf20=subsetData(hpfall.remv2,which.cells(hpfall.remv2,"hpf20"),do.center = F,do.scale = F)
+hpf20
+
+# Find variable gene  with 4 < Average expression and Dispersion > 2
+hpf20=mean.var.plot(hpf20)
+length(hpf20@var.genes)
+
+# Run a PCA using variable gene list
+hpf20=pca(hpf20,do.print = F)
+pcScree(hpf20,hpf20@var.genes,10)
+pcHeatmap(hpf20,1,do.balanced = T,col.use = col)
+pcHeatmap(hpf20,2,do.balanced = T,col.use = col)
+pcHeatmap(hpf20,3,do.balanced = T,col.use = col)
+pca.plot(hpf20,1,2)
+pca.plot(hpf20,1,3)
+
+# Calculate PCA scores for all genes (PCA projection)
+hpf20=project.pca(hpf20,do.print = F)
+
+# Visualize the full projected PCA, which now includes new genes which were not previously (use.full=TRUE)
+pcHeatmap(hpf20,1,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf20,2,use.full = T,do.balanced = T,col.use = col) #technical
+pcHeatmap(hpf20,3,use.full = T,do.balanced = T,col.use = col)
+
+# Do 200 random samplings to find significant genes, each time randomly permute 1% of genes
+# This returns a 'p-value' for each gene in each PC, based on how likely the gene/PC score woud have been observed by chance
+hpf20=jackStraw(hpf20,num.replicate = 200,do.print = F)
+
+# The jackStraw plot compares the distribution of P-values for each PC with a uniform distribution (dashed line)
+# 'Significant' PCs will have a strong enrichment of genes with low p-values (solid curve above dashed line)
+jackStrawPlot.new(hpf20,PCs = 1:12) 
+# In this case only PC1 is strongly significant, PC2 is significant but contain technical genes
+
+# Select 300 genes from PC1 and rerun PCA
+good.genes20=pcTopGenes(hpf20,1,300,T,T)
+
+# Run a PCA using selected gene list
+hpf20=pca(hpf20,pc.genes = good.genes20,do.print = F)
+pcScree(hpf20,good.genes20,10)
+pcHeatmap(hpf20,1,do.balanced = T,col.use = col)
+pcHeatmap(hpf20,2,do.balanced = T,col.use = col)
+pcHeatmap(hpf20,3,do.balanced = T,col.use = col)
+pca.plot(hpf20,1,2)
+pca.plot(hpf20,1,3)
+
+# Calculate PCA scores for all genes (PCA projection)
+hpf20=project.pca(hpf20,do.print = F)
+
+# Visualize the full projected PCA, which now includes new genes which were not previously (use.full=TRUE)
+pcHeatmap(hpf20,1,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf20,2,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf20,3,use.full = T,do.balanced = T,col.use = col)
+
+# Do 200 random samplings to find significant genes, each time randomly permute 1% of genes
+# This returns a 'p-value' for each gene in each PC, based on how likely the gene/PC score woud have been observed by chance
+hpf20=jackStraw(hpf20,num.replicate = 200,do.print = F)
+
+# The jackStraw plot compares the distribution of P-values for each PC with a uniform distribution (dashed line)
+# 'Significant' PCs will have a strong enrichment of genes with low p-values (solid curve above dashed line)
+jackStrawPlot.new(hpf20,PCs = 1:12)
+# In this case PC1-3 are significant
+
+# Run tSNE using significant PCs as input (spectral tSNE), we get distinct point clouds
+hpf20=run_tsne(hpf20,max_iter=2000,dims.use = 1:3)
+tsne.plot(hpf20,do.label = T,label.pt.size = 1)
+
+# Find cell clusters using Modularity optimization cluster detection.
+hpf20 = FindClusters(hpf20, pc.use = 1:3, do.modularity = T,resolution = 1,prune.SNN = 0.1, print.output = 0,k.param =20)
+tsne.plot(hpf20,do.label = T,label.pt.size = 1)
+
+# The validity of the clusters can be validated using a classification scheme based on linear SVMs.
+hpf20 = BuildSNN(hpf20, pc.use=1:3,do.sparse = T,k.param = 20)
+hpf20 = ValidateClusters(hpf20, pc.use=1:3, min.connectivity = 0.001, acc.cutoff = 0.85)
+tsne.plot(hpf20,do.label = T,label.pt.size = 1)
+
+# Find cluster markersusing ROC test with thresh.use = 1, min.pct = 0.5
+# The ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect). Though not a statistical test, it is often very useful for finding clean markers.
+# Find markers for cluster 2
+cl2_20.markers=find.markers(hpf20,2,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl2_20.markers[order(cl2_20.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf20,c("NKX2-3","EBF1/2/3/4","GATA4/5/6"))
+# Based on preliminary studies, these EBF1/2/3/4+ NKX- GATA- cells are ASM1 cells
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf20,c("KH2013:KH.C4.506_HMCN1","KH2013:KH.C11.139"))
+
+# Find markers for cluster 3
+cl3_20.markers=find.markers(hpf20,3,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl3_20.markers[order(cl3_20.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf20,c("NKX2-3","EBF1/2/3/4","GATA4/5/6","TBX1/10"))
+# Based on preliminary studies, these EBF1/2/3/4- NKX+ GATA- TBX1/10+ cells are SHP cells
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf20,c("KH2013:KH.C1.638_C17ORF105","DACH1/2"))
+
+# Find markers for cluster 6
+cl6_20.markers=find.markers(hpf20,6,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl6_20.markers[order(cl6_20.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf20,c("NKX2-3","EBF1/2/3/4","TBX1/10"))
+# Confirmed with theses markers cluster 5 NKX+ EBF1/2/3/4- TBX1/10- cells are FHP cells
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf20,c("MMP21","FRAS1"))
+
+# Find markers for cluster 7
+cl7_20.markers=find.markers(hpf20,7,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl7_20.markers[order(cl7_20.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf20,c("NKX2-3","EBF1/2/3/4","TBX1/10"))
+# Confirmed with theses markers cluster 5 NKX+ EBF1/2/3/4- TBX1/10- cells are ASM2 cells
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf20,c("MYF5","CALML6"))
+# MYF5 is a more differentiated marker, this group of ASM is more deferentiated ASM cells.
+
+# Write cell names into text files
+write.table(which.cells(hpf20,2),file = "20ASM1Cells.txt",sep = "\t")
+write.table(which.cells(hpf20,3),file = "20SHPCells.txt",sep = "\t")
+write.table(which.cells(hpf20,6),file = "20FHPCells.txt",sep = "\t")
+write.table(which.cells(hpf20,7),file = "20ASM2Cells.txt",sep = "\t")
+
+# Rename cluster identities
+hpf20=rename.ident(hpf20,2,"20ASM1")
+hpf20=rename.ident(hpf20,3,"20SHP")
+hpf20=rename.ident(hpf20,6,"20FHP")
+hpf20=rename.ident(hpf20,7,"20ASM2")
+
+# Visualize tSNE used color scheme FHP-red, SHP-orange, ASM-blue
+tsne.plot(hpf20,do.label = T,label.pt.size = 1,label.cex.text = 1.2,label.cols.use = c("blue4","blue","red","orange"))
+
+# Store FHP markers in text file
+FHP_20.markers=cl6_20.markers
+head(FHP_20.markers[order(FHP_20.markers$myAUC,decreasing = T),],20)
+write.table(FHP_20.markers,file = "FHP_20.markers.txt",sep = "\t")
+
+# Store SHP markers in text file
+SHP_20.markers=cl3_20.markers
+head(SHP_20.markers[order(SHP_20.markers$myAUC,decreasing = T),],20)
+write.table(SHP_20.markers,file = "SHP_20.markers.txt",sep = "\t")
+
+# Store ASM1 markers in text file
+ASM1_20.markers=cl2_20.markers
+head(ASM1_20.markers[order(ASM1_20.markers$myAUC,decreasing = T),],20)
+write.table(ASM1_20.markers,file = "ASM1_20.markers.txt",sep = "\t")
+
+# Store ASM2 markers in text file
+ASM2_20.markers=cl7_20.markers
+head(ASM2_20.markers[order(ASM2_20.markers$myAUC,decreasing = T),],20)
+write.table(ASM2_20.markers,file = "ASM2_20.markers.txt",sep = "\t")
+
+# Find pan Heart Progenitor markers
+panHP_20.markers=find.markers(hpf20,c("20SHP","20FHP"),thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(panHP_20.markers[order(panHP_20.markers$myAUC,decreasing = T),],20)
+write.table(panHP_20.markers,file = "panHP_20.markers.txt",sep = "\t")
+
+# Find SHP specific markers that distinguish tow heart progenitors FHP and SHP 
+SHPspecific_20.markers=find.markers(hpf20,"20SHP","20FHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(SHPspecific_20.markers[order(SHPspecific_20.markers$myAUC,decreasing = T),],20)
+write.table(SHPspecific_20.markers,file = "SHPspecific_20.markers.txt",sep = "\t")
+
+# Find FHP specific markers that distinguish two heart progenitors FHP and SHP 
+FHPspecific_20.markers=find.markers(hpf20,"20FHP","20SHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(FHPspecific_20.markers[order(FHPspecific_20.markers$myAUC,decreasing = T),],20)
+write.table(FHPspecific_20.markers,file = "FHPspecific_20.markers.txt",sep = "\t")
+
+# Find ASM1 specific markers that distinguish two heart progenitors ASM1 and ASM2 
+ASM1specific_20.markers=find.markers(hpf20,"20ASM1","20ASM2",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(ASM1specific_20.markers[order(ASM1specific_20.markers$myAUC,decreasing = T),],20)
+write.table(ASM1specific_20.markers,file = "ASM1specific_20.markers.txt",sep = "\t")
+
+# Find ASM2 specific markers that distinguish two heart progenitors ASM2 and ASM1 
+ASM2specific_20.markers=find.markers(hpf20,"20ASM2","20ASM1",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(ASM2specific_20.markers[order(ASM2specific_20.markers$myAUC,decreasing = T),],20)
+write.table(ASM2specific_20.markers,file = "ASM2specific_20.markers.txt",sep = "\t")
+
+# Find ASM markers
+ASM_20.markers=find.markers(hpf20,c("20ASM1","20ASM2"),"20FHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(ASM_20.markers[order(ASM_20.markers$myAUC,decreasing = T),],20)
+
+#ASM_20.markers=find.markers(hpf20,c("20ASM1","20ASM2"),thresh.use = 1,test.use = "roc",min.pct = 0.5)
+#head(ASM_20.markers[order(ASM_20.markers$myAUC,decreasing = T),],20)
+write.table(ASM_20.markers,file = "ASM_20.markers.txt",sep = "\t")
+
+# Visualize markers of different clusters using violin plot and feature plot
+hpf20@ident=factor(hpf20@ident,ordered = T, levels = c("20FHP","20SHP","20ASM1","20ASM2")) 
+genes.viz.20=c("DACH1/2","MYF5","EBF1/2/3/4","MMP21")
+feature.plot(hpf20,genes.viz.20,pt.size = 0.8)
+vlnPlot(hpf20,genes.viz.20,cols.use = c("red","orange","blue","blue4"))
+
+# Select markers for plotting on a Heatmap (top 10 positive markers with high classification power(myAUC))
+marker20FHP=rownames(FHP_20.markers[order(FHP_20.markers$myAUC,decreasing = T)[1:15],])
+marker20SHP=rownames(SHP_20.markers[order(SHP_20.markers$myAUC,decreasing = T)[1:15],])
+marker20ASM1=rownames(ASM1_20.markers[order(ASM1_20.markers$myAUC,decreasing = T)[1:15],])
+marker20ASM2=rownames(ASM2_20.markers[order(ASM2_20.markers$myAUC,decreasing = T)[1:15],])
+marker.20=c(marker20FHP,marker20SHP,marker20ASM1,marker20ASM2)
+
+panHeart.select=rownames(subset(panHP_20.markers,power>0.6&avg_diff>0))
+asm.select=rownames(subset(ASM_20.markers,power>0.6&avg_diff>0))
+
+# Draw a heatmap of all cells for these marker genes
+doHeatMap(hpf20,genes.use = marker.20,remove.key = F,slim.col.label = T,draw.line = T,cex.col = 1.2,col.use = col)
+doHeatMap(hpf20,genes.use = c(panHeart.select,asm.select),remove.key = F,slim.col.label = T,draw.line = T,cex.col = 1.2,col.use = col)
+```
+
+5. hpf18
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+# Subset data from preprocessed Seurat object
+hpf18=subsetData(hpfall.remv2,which.cells(hpfall.remv2,"hpf18"),do.center = F,do.scale = F)
+hpf18
+
+# Based on hpf12 hpf14 and hpf20 data, we have successfully uncovered all the TVC lineage types: TVC, STVC, FHP, SHP, ASM
+# Based on preliminary studies, hpf18 contains three TVC lineage cell types: FHP, SHP and ASM
+# Therefore we can run PCA using 20hpf cell markers (20FHP, 20SHP, 20ASM) with power > 0.5 and postive expressions
+marker20FHP.use=rownames(subset(FHP_20.markers,power>0.5&avg_diff>0))
+marker20SHP.use=rownames(subset(SHP_20.markers,power>0.5&avg_diff>0))
+marker20ASM1.use=rownames(subset(ASM1_20.markers,power>0.5&avg_diff>0))
+marker20ASM2.use=rownames(subset(ASM2_20.markers,power>0.5&avg_diff>0))
+marker.20.use=unique(c(marker20FHP.use,marker20SHP.use,marker20ASM1.use,marker20ASM2.use))
+length(marker.20.use)
+
+hpf18=pca(hpf18,pc.genes = marker.20.use,do.print = F)
+pcScree(hpf18,marker.20.use,10)
+pcHeatmap(hpf18,1,do.balanced = T,col.use = col)
+pcHeatmap(hpf18,2,do.balanced = T,col.use = col)
+pcHeatmap(hpf18,3,do.balanced = T,col.use = col)
+pca.plot(hpf18,1,2)
+pca.plot(hpf18,1,3)
+
+# Calculate PCA scores for all genes (PCA projection)
+hpf18=project.pca(hpf18,do.print = F)
+
+# Visualize the full projected PCA, which now includes new genes which were not previously (use.full=TRUE)
+pcHeatmap(hpf18,1,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf18,2,use.full = T,do.balanced = T,col.use = col) #technical
+pcHeatmap(hpf18,3,use.full = T,do.balanced = T,col.use = col)
+
+# Do 200 random samplings to find significant genes, each time randomly permute 1% of genes
+# This returns a 'p-value' for each gene in each PC, based on how likely the gene/PC score woud have been observed by chance
+hpf18=jackStraw(hpf18,num.replicate = 200,do.print = F)
+
+# The jackStraw plot compares the distribution of P-values for each PC with a uniform distribution (dashed line)
+# 'Significant' PCs will have a strong enrichment of genes with low p-values (solid curve above dashed line)
+jackStrawPlot.new(hpf18,PCs = 1:12) 
+# In this case only PC1 and PC3 are strongly significant.
+
+# Run tSNE using significant PCs as input (spectral tSNE), we get distinct point clouds
+hpf18=run_tsne(hpf18,max_iter=2000,dims.use = c(1,3))
+tsne.plot(hpf18,do.label = T,label.pt.size = 1)
+
+# Find cell clusters using Modularity optimization cluster detection.
+hpf18 = FindClusters(hpf18, pc.use = c(1,3), do.modularity = T,resolution = 1,prune.SNN = 0.1, print.output = 0,k.param = 20,k.scale = floor(177/20))
+tsne.plot(hpf18,do.label = T,label.pt.size = 1)
+
+# The validity of the clusters can be validated using a classification scheme based on linear SVMs.
+hpf18 = BuildSNN(hpf18, pc.use=c(1,3), do.sparse = T,k.param = 20,k.scale = floor(177/20))
+hpf18 = ValidateClusters(hpf18, pc.use=c(1,3), min.connectivity = 0.001, acc.cutoff = 0.85)
+tsne.plot(hpf18,do.label = T,label.pt.size = 1)
+
+# Find cluster markersusing ROC test with thresh.use = 1, min.pct = 0.5
+# The ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect). Though not a statistical test, it is often very useful for finding clean markers.
+# Find markers for cluster 0
+cl0_18.markers=find.markers(hpf18,0,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl0_18.markers[order(cl0_18.markers$myAUC,decreasing = T),],20) 
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf18,c("NKX2-3","EBF1/2/3/4","TBX1/10","DACH1/2"))
+# Based on EBF1/2/3/4- and NKX+, DACH1/2-, these are FHP cells
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf18,c("NAV1","BMP5/6/7"))
+
+# Find markers for cluster 1
+cl1_18.markers=find.markers(hpf18,1,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl1_18.markers[order(cl1_18.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf18,c("NKX2-3","EBF1/2/3/4","TBX1/10","DACH1/2"))
+# Based on previous discoveries NKX- EBF+ TBX+ DACH- cells are ASM
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf18,c("BDH1","UBE2QL1"))
+
+# Find markers for cluster 2
+cl2_18.markers=find.markers(hpf18,2,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl2_18.markers[order(cl2_18.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf18,c("NKX2-3","EBF1/2/3/4","TBX1/10","DACH1/2"))
+# Based on preliminary discoveries these  NKX+ EBF1/2/3/4- TBX+ DACH1/2+ cells are SHP's
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf18,c("KH2013:KH.C10.174","SCYL"))
+
+# Find markers for cluster 3
+cl3_18.markers=find.markers(hpf18,3,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl3_18.markers[order(cl3_18.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf18,c("NKX2-3","EBF1/2/3/4","TBX1/10","DACH1/2"))
+# Based on preliminary discoveries these  NKX- EBF1/2/3/4+ TBX+ DACH1/2- cells look like ASM but has few highly expressed markers
+
+# Visualize new markers with a violin plot
+vlnPlot(hpf18,c("TMEM144","LGR4/5/6"))
+
+# Plot hpf20 markers
+doHeatMap(hpf18,genes.use = marker.20,slim.col.label = T,remove.key = T,rowsep=seq(0,60,15),col.use = col)
+# Based on the heatmap this group of cells do not express 20ASM2 markers(later differentiated markers), also it tend to express some heart progenitor markers.
+# Named Unknown for late analysis
+
+# Write cell names and markers into text files
+write.table(which.cells(hpf18,0),file = "18FHPCells.txt",sep = "\t")
+write.table(which.cells(hpf18,1),file = "18ASMCells.txt",sep = "\t")
+write.table(which.cells(hpf18,2),file = "18SHPCells.txt",sep = "\t")
+
+# Rename cluster identities
+hpf18=rename.ident(hpf18,0,"18FHP")
+hpf18=rename.ident(hpf18,1,"18ASM")
+hpf18=rename.ident(hpf18,2,"18SHP")
+hpf18=rename.ident(hpf18,3,"18Unknown")
+
+# Visualize tSNE used color scheme FHP-red, SHP-orange, ASM-blue
+tsne.plot(hpf18,do.label = T,label.pt.size = 1,label.cex.text = 1.2,label.cols.use = c("gray","red","orange","blue"))
+
+# Store FHP markers in text file
+FHP_18.markers=find.markers(hpf18,"18FHP",c("18SHP","18ASM"),thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(FHP_18.markers[order(FHP_18.markers$myAUC,decreasing = T),],20)
+write.table(FHP_18.markers,file = "FHP_18.markers.txt",sep = "\t")
+
+# Store SHP markers in text file
+SHP_18.markers=find.markers(hpf18,"18SHP",c("18FHP","18ASM"),thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(SHP_18.markers[order(SHP_18.markers$myAUC,decreasing = T),],20)
+write.table(SHP_18.markers,file = "SHP_18.markers.txt",sep = "\t")
+
+# Store ASM markers in text file
+ASM_18.markers=find.markers(hpf18,"18ASM",c("18SHP","18FHP"),thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(ASM_18.markers[order(ASM_18.markers$myAUC,decreasing = T),],20)
+write.table(ASM_18.markers,file = "ASM_18.markers.txt",sep = "\t")
+
+# Find pan Heart Progenitor markers 
+panHP_18.markers=find.markers(hpf18,c("18SHP","18FHP"),"18ASM",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(panHP_18.markers[order(panHP_18.markers$myAUC,decreasing = T),],20)
+write.table(panHP_18.markers,file = "panHP_18.markers.txt",sep = "\t")
+
+# Find SHP specific markers that distinguish tow heart progenitors FHP and SHP 
+SHPspecific_18.markers=find.markers(hpf18,"18SHP","18FHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(SHPspecific_18.markers[order(SHPspecific_18.markers$myAUC,decreasing = T),],20) 
+write.table(SHPspecific_18.markers,file = "SHPspecific_18.markers.txt",sep = "\t")
+
+# Find FHP specific markers that distinguish tow heart progenitors FHP and SHP 
+FHPspecific_18.markers=find.markers(hpf18,"18FHP","18SHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(FHPspecific_18.markers[order(FHPspecific_18.markers$myAUC,decreasing = T),],20) 
+write.table(FHPspecific_18.markers,file = "FHPspecific_18.markers.txt",sep = "\t")
+
+# Find gene expression percentage among single cells
+hpf18.pct=cluster.alpha(hpf18,thresh.min = 0)
+# Find top 50 pan heart marker expression percentage in 18Unknown cells
+sum(hpf18.pct[rownames(head(panHP_18.markers[order(panHP_18.markers$myAUC,decreasing = T),],50)),4]>0.5)/50
+# Unknown cells have 70% top 50 pan heart marker expressed
+sum(hpf18.pct[rownames(head(panHP_18.markers[order(panHP_18.markers$myAUC,decreasing = T),],50)),c(1,3)]>0.5)/100
+# FHP and SHP cells have only 98% top 50 pan heart marker expressed
+sum(hpf18.pct[rownames(head(panHP_18.markers[order(panHP_18.markers$myAUC,decreasing = T),],50)),2]>0.5)/100
+# ASM cells have 21% top 50 pan heart marker expressed
+# based on pan heart markers the Unknwon cells express more heart progenitors markers
+
+# Find top 50 pan heart marker expression percentage in 18Unknown cells
+sum(hpf18.pct[rownames(head(ASM_18.markers[order(ASM_18.markers$myAUC,decreasing = T),],50)),4]>0.5)/50
+# Unknown cells have 74% top 50 ASM marker expressed
+sum(hpf18.pct[rownames(head(ASM_18.markers[order(ASM_18.markers$myAUC,decreasing = T),],50)),c(1,3)]>0.5)/100
+# FHP and SHP cells have only 30% top 50 ASM marker expressed
+sum(hpf18.pct[rownames(head(ASM_18.markers[order(ASM_18.markers$myAUC,decreasing = T),],50)),2]>0.5)/50
+# ASM cells have 100% top 50 ASM marker expressed
+# based on ASM markers the Unknwon cells express more ASM progenitors markers
+
+# Heat map of 20hpf markers also demonstrates that the 18Unknown cells tend to have both heart and muscle progenitor characteristics
+doHeatMap(hpf18,genes.use = marker.20,slim.col.label = T,remove.key = T,rowsep=seq(0,60,15),col.use = col)
+
+# Based on available published data EBF1/2/3/4 and GATA4/5/6 inhibiting each other during the fate determination of ASM and SHP. No cells were previously reported to have both EBF and GATA expression in TVC lineage (FISH data).
+genePlot(hpf18,cell.ids = which.cells(hpf18,"18Unknown"),"EBF1/2/3/4","GATA4/5/6")
+abline(v=2,h=2,lwd=3,lty=2)
+# There are 14 out of 33 cells (42%) have good expression level(2 logFPKM) of both genes.
+# Thus, upon reasoning above, we conclude that this cluster contains cells that contradict to experimental discoveries which has a high probability to be doublet cells due to technical error.
+
+# Filter the cells based on reasoning above
+hpf18.new=subsetData(hpf18,which.cells(hpf18,c("18ASM","18SHP","18FHP")),do.scale = F)
+tsne.plot(hpf18.new,do.label = T,cols.use = c("red","orange","blue"))
+# Visualize markers of different clusters using violin plot and feature plot
+hpf18.new@ident=factor(hpf18.new@ident,ordered = T, levels = c("18FHP","18SHP","18ASM"))
+genes.viz.18=c("DACH1/2","NKX2-3","EBF1/2/3/4","SFRP1/5")
+feature.plot(hpf18.new,genes.viz.18,pt.size = 0.8)
+vlnPlot(hpf18.new,genes.viz.18,cols.use = c("red","orange","blue"))
+
+# Select markers for plotting on a Heatmap (top 10 positive markers with high classfication power(myAUC))
+marker18FHP=rownames(FHP_18.markers[order(FHP_18.markers$myAUC,decreasing = T)[1:15],])
+marker18SHP=rownames(SHP_18.markers[order(SHP_18.markers$myAUC,decreasing = T)[1:15],])
+marker18ASM=rownames(ASM_18.markers[order(ASM_18.markers$myAUC,decreasing = T)[1:15],])
+marker.18=c(marker18FHP,marker18SHP,marker18ASM)
+
+# Draw a heatmap of all cells for these marker genes
+doHeatMap(hpf18.new,genes.use = marker.18,remove.key = TRUE,slim.col.label = T,cex.col = 1.2,col.use = col)
+```
+
+6. hpf16
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+# Subset data from preprocessed Seurat object
+hpf16=subsetData(hpfall.remv2,which.cells(hpfall.remv2,"hpf16"),do.scale = F)
+hpf16 
+
+# Based on hpf12 hpf14 hpf18 and hpf20 data, we have successfully uncovered all the TVC lineage types: TVC, STVC, FHP, SHP, ASM
+# Based on preliminary studies, hpf16 contains three TVC lineage cell types: FHP, late STVC, early SHP and early ASM which are divided from early STVC. Therefore hpf16 is an intermediate stage between hpf14 and hpf18, we can run PCA with both hpf14 (14STVC,14FHP) and hpf18 cell markers (18FHP, 18SHP, 18ASM). Power>0.4 is used to obtain more markers from hpf14 cells.
+marker20FHP.use=rownames(subset(FHP_20.markers,power>0.5&avg_diff>0))
+marker20SHP.use=rownames(subset(SHP_20.markers,power>0.5&avg_diff>0))
+marker20ASM1.use=rownames(subset(ASM1_20.markers,power>0.5&avg_diff>0))
+marker20ASM2.use=rownames(subset(ASM2_20.markers,power>0.5&avg_diff>0))
+marker14FHP.use=rownames(subset(FHP_14.markers,power>0.4&avg_diff>0))
+marker14STVC.use=rownames(subset(STVC_14.markers,power>0.4&avg_diff>0))
+marker.16.use=unique(c(marker20FHP.use,marker20SHP.use,marker20ASM1.use,marker20ASM2.use,marker14FHP.use,marker14STVC.use))
+length(marker.16.use)
+
+# Run a PCA using marker list
+hpf16=pca(hpf16,pc.genes = marker.16.use,do.print = F)
+pcScree(hpf16,marker.16.use,10)
+pcHeatmap(hpf16,1,do.balanced = T,col.use = col)
+pcHeatmap(hpf16,2,do.balanced = T,col.use = col)
+pcHeatmap(hpf16,3,do.balanced = T,col.use = col)
+pca.plot(hpf16,1,2)
+pca.plot(hpf16,1,3)
+
+# Calculate PCA scores for all genes (PCA projection)
+hpf16=project.pca(hpf16,do.print = F)
+
+# Visualize the full projected PCA, which now includes new genes which were not previously (use.full=TRUE)
+pcHeatmap(hpf16,1,use.full = T,do.balanced = T,col.use = col)
+pcHeatmap(hpf16,2,use.full = T,do.balanced = T,col.use = col) #technical 
+pcHeatmap(hpf16,3,use.full = T,do.balanced = T,col.use = col) 
+
+# Do 200 random samplings to find significant genes, each time randomly permute 1% of genes
+# This returns a 'p-value' for each gene in each PC, based on how likely the gene/PC score woud have been observed by chance
+# Note that in this case we get the same result with 200 or 1000 samplings, so we do 200 here for expediency. Due to a lightly lower PCA input, permutation frequency is set to 0.02.
+hpf16=jackStraw(hpf16,num.replicate = 200,do.print = F)
+
+# The jackStraw plot compares the distribution of P-values for each PC with a uniform distribution (dashed line)
+# 'Significant' PCs will have a strong enrichment of genes with low p-values (solid curve above dashed line)
+jackStrawPlot.new(hpf16,PCs = 1:12)
+# In this case PC1 and PC3 are significant
+
+# Run tSNE using significant PCs as input (spectral tSNE), we get distinct point clouds
+hpf16=run_tsne(hpf16,max_iter=2000,dims.use = c(1,3))
+tsne.plot(hpf16,do.label = T,label.pt.size = 1)
+
+# Find cell clusters using Modularity optimization cluster detection.
+# hpf16 dataset contain fewer cells than the others a k.param=10.
+hpf16 = FindClusters(hpf16, pc.use = c(1,3), do.modularity = T,resolution = 1,prune.SNN = 0.1, print.output = 0,k.param = 20,k.scale = floor(114/20))
+tsne.plot(hpf16,do.label = T,label.pt.size = 1)
+
+# The validity of the clusters can be validated using a classification scheme based on linear SVMs.
+hpf16 = BuildSNN(hpf16, pc.use=c(1,3), do.sparse = T,k.param =20,k.scale = floor(114/20))
+hpf16 = ValidateClusters(hpf16, pc.use=c(1,3), min.connectivity = 0.001, acc.cutoff = 0.85)
+tsne.plot(hpf16,do.label = T,label.pt.size = 1)
+
+# Find cluster markersusing ROC test with thresh.use = 1, min.pct = 0.5
+# The ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect). Though not a statistical test, it is often very useful for finding clean markers.
+# Find markers for cluster 0
+cl0_16.markers=find.markers(hpf16,0,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl0_16.markers[order(cl0_16.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf16,c("NKX2-3","EBF1/2/3/4","TBX1/10","DACH1/2"))
+# Based on preliminary studies these NKX2-3+ EBF1/2/3/4- DACH1/2+ TBX1/10+ cells are SHPs
+
+# Find markers for cluster 2
+cl2_16.markers=find.markers(hpf16,2,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl2_16.markers[order(cl2_16.markers$myAUC,decreasing = T),],20) 
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf16,c("NKX2-3","EBF1/2/3/4","DACH1/2","TBX1/10"))
+# Based on preliminary studies these NKX2-3- EBF1/2/3/4+ DACH1/2+ TBX1/10+ cells are ASM
+
+# Find markers for cluster 3
+cl3_16.markers=find.markers(hpf16,3,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(cl3_16.markers[order(cl3_16.markers$myAUC,decreasing = T),],20)
+
+# Visualize known markers with a violin plot
+vlnPlot(hpf16,c("NKX2-3","EBF1/2/3/4","TBX1/10","DACH1/2"))
+# Based known markers, this group is FHP
+
+# Write cell names into text files
+write.table(which.cells(hpf16,0),file = "16SHPCells.txt",sep = "\t")
+write.table(which.cells(hpf16,2),file = "16ASMCells.txt",sep = "\t")
+write.table(which.cells(hpf16,3),file = "16FHPCells.txt",sep = "\t")
+
+# Rename cluster identities
+hpf16=rename.ident(hpf16,0,"16SHP")
+hpf16=rename.ident(hpf16,2,"16ASM")
+hpf16=rename.ident(hpf16,3,"16FHP")
+
+# Visualize tSNE used color scheme
+tsne.plot(hpf16,do.label = T,label.pt.size = 1,label.cex.text = 1.2,label.cols.use = c("orange","red","blue"))
+
+# Visualize markers of different clusters using violin plot and feature plot
+hpf16@ident=factor(hpf16@ident,ordered = T, levels = c("16FHP","16SHP","16ASM")) 
+genes.viz.16=c("DACH1/2","TBX1/10","NKX2-3","EBF1/2/3/4")
+feature.plot(hpf16,genes.viz.16,pt.size = 0.8)
+vlnPlot(hpf16,genes.viz.16,cols.use = c("red","orange","blue"))
+
+# Store FHP markers in text file
+FHP_16.markers=cl3_16.markers
+head(FHP_16.markers[order(FHP_16.markers$myAUC,decreasing = T),],20)
+write.table(FHP_16.markers,file = "FHP_16.markers.txt",sep = "\t")
+
+# Store SHP markers in text file
+SHP_16.markers=cl0_16.markers
+head(SHP_16.markers[order(SHP_16.markers$myAUC,decreasing = T),],20)
+write.table(SHP_16.markers,file = "SHP_16.markers.txt",sep = "\t")
+
+# Store ASM markers in text file
+ASM_16.markers=cl2_16.markers
+head(ASM_16.markers[order(ASM_16.markers$myAUC,decreasing = T),],20)
+
+# Find HP markers (pan cardiac marker)
+HP_16.markers=find.markers(hpf16,c("16SHP","16FHP"),thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(HP_16.markers[order(HP_16.markers$myAUC,decreasing = T),],20)
+write.table(HP_16.markers,file = "panHP_16.markers.txt",sep = "\t")
+
+# Find SHP specific markers that distinguish two heart progenitors FHP and SHP 
+SHPspecific_16.markers=find.markers(hpf16,"16SHP","16FHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(SHPspecific_16.markers[order(SHPspecific_16.markers$myAUC,decreasing = T),],20)
+write.table(SHPspecific_16.markers,file = "SHPspecific_16.markers.txt",sep = "\t")
+
+# Find FHP specific markers that distinguish two heart progenitors FHP and SHP 
+FHPspecific_16.markers=find.markers(hpf16,"16FHP","16SHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(FHPspecific_16.markers[order(FHPspecific_16.markers$myAUC,decreasing = T),],20)
+write.table(FHPspecific_16.markers,file = "FHPspecific_16.markers.txt",sep = "\t")
+
+# Select markers for plotting on a Heatmap (top 10 positive markers with high discriminatory power) (5 markers are shown for STVC and SHP due to less markers)
+marker16FHP=rownames(FHP_16.markers[order(FHP_16.markers$myAUC,decreasing = T)[1:15],])
+marker16SHP=rownames(SHP_16.markers[order(SHP_16.markers$myAUC,decreasing = T)[1:15],])
+marker16ASM=rownames(ASM_16.markers[order(ASM_16.markers$myAUC,decreasing = T)[1:15],])
+marker.16=c(marker16FHP,marker16SHP,marker16ASM)
+
+# Redefine ASM markers 
+ASM_16.markers=find.markers(hpf16,"16ASM","16FHP",thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(ASM_16.markers[order(ASM_16.markers$myAUC,decreasing = T),],20)
+write.table(ASM_16.markers,file = "ASM_16.markers.txt",sep = "\t")
+
+# Draw a heatmap of all cells for these marker genes
+doHeatMap(hpf16,genes.use = marker.16,remove.key = TRUE,slim.col.label = T,cex.col = 1.2,col.use = col)
+
+# Store clustering information into a master Seurat object
+hpfall.cluster=hpfall.remv2
+hpfall.cluster=set.ident(hpfall.cluster,which.cells(hpfall.cluster,"hpf12"),hpf12@ident)
+hpfall.cluster=set.ident(hpfall.cluster,which.cells(hpfall.cluster,"hpf14"),hpf14@ident)
+hpfall.cluster=set.ident(hpfall.cluster,which.cells(hpfall.cluster,"hpf16"),hpf16@ident)
+hpfall.cluster=set.ident(hpfall.cluster,which.cells(hpfall.cluster,"hpf18"),hpf18@ident)
+hpfall.cluster=set.ident(hpfall.cluster,which.cells(hpfall.cluster,"hpf20"),hpf20@ident)
+
+boxPlot.FPKM(hpfall.cluster,"reads",name.y = "Total Reads",name.x = "",ratio.plot = 0.000003)
+boxPlot.FPKM(hpfall.cluster,"map.rate",name.y = "Mapping Rates",name.x = "",ratio.plot = 0.1)
+boxPlot.FPKM(hpfall.cluster,"nGene",name.y = "Number of Genes",name.x = "",ratio.plot = 0.002)
+save(hpfall.cluster,file = "hpfallCluster.Robj")
+save(hpf12,hpf14,hpf16,hpf18,hpf20,file = "hpfall.Robj")
+```

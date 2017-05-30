@@ -1,0 +1,339 @@
+---
+title: "**Preprocess**"
+fontsize: 12pt
+author: "Xiang Niu May 11, 2016"
+output: 
+  pdf_document:
+    fig_height: 5
+    fig_width: 6
+---
+1. Load packages
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+library(Seurat)
+library(pbapply)
+library(RColorBrewer)
+source("functions.R")
+col=colorRampPalette(rev(brewer.pal(n=10, name="RdBu")))
+```
+
+2. Merge Data
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+# read data
+hpf12.data=read.table("hpf12.txt",sep = "\t",header = T,row.names = 1)
+hpf14.data=read.table("hpf14.txt",sep = "\t",header = T,row.names = 1)
+hpf16.data=read.table("hpf16new.txt",sep = "\t",header = T,row.names = 1)
+hpf18.data=read.table("hpf18.txt",sep="\t",header=TRUE,row.names=1)
+hpf20.data=read.table("hpf20.txt",sep="\t",header=TRUE,row.names=1)
+
+# change the column names
+colnames(hpf12.data)=paste("hpf12_",colnames(hpf12.data),sep = "")
+colnames(hpf14.data)=paste("hpf14_",colnames(hpf14.data),sep = "")
+colnames(hpf16.data)=paste("hpf16_",colnames(hpf16.data),sep = "")
+colnames(hpf18.data)=paste("hpf18_",colnames(hpf18.data),sep = "")
+colnames(hpf20.data)=paste("hpf20_",colnames(hpf20.data),sep = "")
+
+# pool all cell types
+hpfall.data=cbind(hpf12.data,hpf14.data,hpf16.data,hpf18.data,hpf20.data)
+dim(hpfall.data)
+
+# transform data to log scale
+hpfall.data=log(hpfall.data+1)
+
+# setup Seurat object
+hpfall=new("seurat",raw.data=hpfall.data)
+
+# Take all genes in > 3 cells, all cells with 2k < detected genes < 6k, 
+# use an expression threshold of 1 log(FPKM)
+hpfall=setup(hpfall,project="allhpf",min.cells = 3,min.genes = 2000,is.expr=1,names.field = 1,names.delim = "_") 
+hpfall=subsetData(hpfall,subset.name = "nGene",accept.high = 6000)
+hpfall
+```
+
+3. QC of data
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+#############################hpf12########################
+hpf12summary=list.files(path = './summary/hpf12summary')
+reads12=NULL
+map12=NULL
+cellName12=substring(which.cells(hpfall,"hpf12"),7)
+hpf12summaryName=gsub("cufflinks","",cellName12)
+hpf12Names=NULL
+for (i in hpf12summaryName){
+  hpf12Names=append(hpf12Names,grep(i,hpf12summary))
+}
+hpf12summary=hpf12summary[hpf12Names]
+for (i in hpf12summary){
+  cell = read.csv(paste("./summary/hpf12summary/",i,sep = ""))
+  reads = grep("Input",cell$Reads.)
+  map = grep("overall",cell$Reads.)
+  totReads = as.numeric(substr(as.character(cell$Reads.[reads]),22,50))
+  mapRates = as.numeric(substr(as.character(cell$Reads.[map]),1,4))
+  map12=append(map12,mapRates)
+  reads12=append(reads12,totReads)
+}
+
+# Add data infor to Seurat object
+hpfall@data.info[,c("map.rate","reads")]=NA
+hpfall@data.info[hpfall@ident=="hpf12","map.rate"]=map12
+hpfall@data.info[hpfall@ident=="hpf12","reads"]=reads12
+#############################hpf14########################
+hpf14summary=list.files(path = './summary/hpf14summary')
+reads14=NULL
+map14=NULL
+cellName14=substring(which.cells(hpfall,"hpf14"),7)
+hpf14summaryName=gsub("cufflinks","",cellName14)
+hpf14Names=NULL
+for (i in hpf14summaryName){
+  hpf14Names=append(hpf14Names,grep(i,hpf14summary))
+}
+hpf14summary=hpf14summary[hpf14Names]
+for (i in hpf14summary){
+  cell = read.csv(paste("./summary/hpf14summary/",i,sep = ""))
+  reads = grep("Input",cell$Reads.)
+  map = grep("overall",cell$Reads.)
+  totReads = as.numeric(substr(as.character(cell$Reads.[reads]),22,50))
+  mapRates = as.numeric(substr(as.character(cell$Reads.[map]),1,4))
+  map14=append(map14,mapRates)
+  reads14=append(reads14,totReads)
+}
+
+# Add data infor to Seurat object
+hpfall@data.info[hpfall@ident=="hpf14","map.rate"]=map14
+hpfall@data.info[hpfall@ident=="hpf14","reads"]=reads14
+#############################hpf16########################
+hpf16summary=list.files(path = './summary/hpf16summary')
+reads16=NULL
+map16=NULL
+cellName16=substring(which.cells(hpfall,"hpf16"),7)
+hpf16summaryName=gsub("cufflinks","",cellName16)
+hpf16Names=NULL
+for (i in hpf16summaryName){
+  hpf16Names=append(hpf16Names,grep(i,hpf16summary))
+}
+hpf16summary=hpf16summary[hpf16Names]
+for (i in hpf16summary){
+  cell = read.csv(paste("./summary/hpf16summary/",i,sep = ""))
+  reads = grep("Input",cell$Reads.)
+  map = grep("overall",cell$Reads.)
+  totReads = as.numeric(substr(as.character(cell$Reads.[reads]),22,50))
+  mapRates = as.numeric(substr(as.character(cell$Reads.[map]),1,4))
+  map16=append(map16,mapRates)
+  reads16=append(reads16,totReads)
+}
+
+# Add data infor to Seurat object
+hpfall@data.info[hpfall@ident=="hpf16","map.rate"]=map16
+hpfall@data.info[hpfall@ident=="hpf16","reads"]=reads16
+#############################hpf18########################
+hpf18summary=list.files(path = './summary/hpf18summary')
+reads18=NULL
+map18=NULL
+cellName18=substring(which.cells(hpfall,"hpf18"),7)
+hpf18summaryName=gsub("outcufflinks","",cellName18)
+hpf18Names=NULL
+for (i in hpf18summaryName){
+  hpf18Names=append(hpf18Names,grep(i,hpf18summary))
+}
+hpf18summary=hpf18summary[hpf18Names]
+for (i in hpf18summary){
+  cell = read.csv(paste("./summary/hpf18summary/",i,sep = ""))
+  reads = grep("Input",cell$Reads.)
+  map = grep("overall",cell$Reads.)
+  totReads = as.numeric(substr(as.character(cell$Reads.[reads]),22,50))
+  mapRates = as.numeric(substr(as.character(cell$Reads.[map]),1,4))
+  map18=append(map18,mapRates)
+  reads18=append(reads18,totReads)
+}
+
+# Add data infor to Seurat object
+hpfall@data.info[hpfall@ident=="hpf18","map.rate"]=map18
+hpfall@data.info[hpfall@ident=="hpf18","reads"]=reads18
+#############################hpf20########################
+hpf20summary=list.files(path = './summary/hpf20summary')
+reads20=NULL
+map20=NULL
+cellName20=substring(which.cells(hpfall,"hpf20"),7)
+hpf20summaryName=gsub("cufflinks","",cellName20)
+hpf20Names=NULL
+for (i in hpf20summaryName){
+  hpf20Names=append(hpf20Names,grep(i,hpf20summary))
+}
+hpf20summary=hpf20summary[hpf20Names]
+for (i in hpf20summary){
+  cell = read.csv(paste("./summary/hpf20summary/",i,sep = ""))
+  reads = grep("Input",cell$Reads.)
+  map = grep("overall",cell$Reads.)
+  totReads = as.numeric(substr(as.character(cell$Reads.[reads]),22,50))
+  mapRates = as.numeric(substr(as.character(cell$Reads.[map]),1,4))
+  map20=append(map20,mapRates)
+  reads20=append(reads20,totReads)
+}
+
+# Add data infor to Seurat object
+hpfall@data.info[hpfall@ident=="hpf20","map.rate"]=map20
+hpfall@data.info[hpfall@ident=="hpf20","reads"]=reads20
+##########################################################
+# Plot mappint rates from all the data
+plot(NULL, xlab="Mapping Rates", ylab="Density", xlim=c(0,100),ylim=c(0,0.1),cex.lab=1.2,font.lab=2)
+points(density(map12),type = "l",col=brewer.pal(5,"Set1")[1],lwd=3)
+points(density(map14),type = "l",col=brewer.pal(5,"Set1")[2],lwd=3) 
+points(density(map16),type = "l",col=brewer.pal(5,"Set1")[3],lwd=3)
+points(density(map18),type = "l",col=brewer.pal(5,"Set1")[4],lwd=3)
+points(density(map20),type = "l",col=brewer.pal(5,"Set1")[5],lwd=3)
+legend("topright",legend = c("hpf12","hpf14","hpf16","hpf18","hpf20"), lty=1, col=brewer.pal(5,"Set1"), cex=.75,xpd=T,inset = c(0.1,0),bty="n")
+
+# Plot total reads from all data
+plot(NULL, xlab="Total Reads", ylab="Density", xlim=c(0,3e+06),ylim=c(0,3e-06),cex.lab=1.2,font.lab=2)
+points(density(reads12),type = "l",col=brewer.pal(5,"Set1")[1],lwd=3)
+points(density(reads14),type = "l",col=brewer.pal(5,"Set1")[2],lwd=3) 
+points(density(reads16),type = "l",col=brewer.pal(5,"Set1")[3],lwd=3)
+points(density(reads18),type = "l",col=brewer.pal(5,"Set1")[4],lwd=3)
+points(density(reads20),type = "l",col=brewer.pal(5,"Set1")[5],lwd=3)
+legend("topright",legend = c("hpf12","hpf14","hpf16","hpf18","hpf20"), lty=1, col=c("red","blue","yellow","green","black"), cex=.75,xpd=T,inset = c(0.1,0),bty="n")
+
+# Remove cells with mapping rate < 30%, reads > 2*10^6
+boxPlot.FPKM(hpfall,"map.rate",name.y = "Mapping Rate(%)",ratio.plot = 0.06,name.x = "",name = "Mapping Rates")
+boxPlot.FPKM(hpfall,"reads",name.y = "Total Reads",name.x = "",ratio.plot = 0.0000012,name = "Total Reads")
+hpfall=subsetData(hpfall,subset.name = "map.rate",accept.low = 30)
+hpfall=subsetData(hpfall,subset.name = "reads",accept.high = 2e+06)
+hpfall
+boxPlot.FPKM(hpfall,"map.rate",name.y = "Mapping Rate(%)",ratio.plot = 0.1,name.x = "",name = "Mapping Rates")
+boxPlot.FPKM(hpfall,"reads",name.y = "Total Reads",name.x = "",ratio.plot = 0.000003,name = "Total Reads")
+```
+
+4. Remove Contamination and Batch Effect
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+# PCA on all the genes
+hpfall=pca(hpfall,pc.genes = rownames(hpfall@data),do.print = F)
+pcScree(hpfall,rownames(hpfall@data),10)
+abline(h=0.5)
+
+# Top 7 PCs are selected (PVE>0.5%)
+
+# PC1
+# Population of potential contaminated cell type
+doHeatMap(hpfall,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall,1) ,cells.use = pcTopCells(hpfall,1),col.use = col)
+pca.plot(hpfall,1,2)
+
+# PC2
+# Batch effect due to library preparation, it separates hpf12/14/16 with hpf18/20
+doHeatMap(hpfall,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall,2),cells.use = pcTopCells(hpfall,2),col.use = col)
+pca.plot(hpfall,1,2)
+
+# PC3
+# Mesenchymal contamination
+doHeatMap(hpfall,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall,3),cells.use = pcTopCells(hpfall,3),col.use = col)
+pca.plot(hpfall,1,3)
+feature.plot(hpfall,c("RTP4","TWIST1"),reduction.use = "pca",dim.2 = 3)
+
+# PC4
+# Heart vs Muscle split
+doHeatMap(hpfall,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall,4),cells.use = pcTopCells(hpfall,4),col.use = col)  
+feature.plot(hpfall,c("NKX2-3","EBF1/2/3/4","TBX1/10","GATA4/5/6"),reduction.use = "pca",dim.2 = 4)
+
+# PC5
+# Another batch effect
+doHeatMap(hpfall,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall,5),cells.use = pcTopCells(hpfall,5),col.use = col) 
+pca.plot(hpfall,1,5)
+
+# PC6
+# Saperation by heart vs muscle
+doHeatMap(hpfall,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall,6),cells.use = pcTopCells(hpfall,6),col.use = col) 
+pca.plot(hpfall,1,6)
+feature.plot(hpfall,c("NKX2-3","EBF1/2/3/4","TBX1/10","GATA4/5/6"),reduction.use = "pca",dim.2 = 6)
+
+# PC7
+# Batch effect marked hpf14
+doHeatMap(hpfall,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall,7),cells.use = pcTopCells(hpfall,7),col.use = col) 
+pca.plot(hpfall,1,7)
+
+# Remove batch effect
+hpfall.remv1=RegressOut(hpfall,c("PC2","PC5","PC7"),do.scale = T)
+
+# save object
+save(hpfall.remv1,file = "hpfall.remv1.Robj")
+
+# Rerun PCA with all genes
+hpfall.remv1=pca(hpfall.remv1,pc.genes = rownames(hpfall.remv1@data),do.print = F)
+pcScree(hpfall.remv1,rownames(hpfall.remv1@data),10)
+abline(h=0.5)
+
+# Top 5 PCs are selected (PVE>0.5%)
+
+# PC1
+# Population of potential contamination cell type
+doHeatMap(hpfall.remv1,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall.remv1,1) ,cells.use = pcTopCells(hpfall.remv1,1),col.use = col)
+pca.plot(hpfall.remv1,1,2)
+
+# This group of cells also do not express known TVC lineage markers
+feature.plot(hpfall.remv1,c("NKX2-3","GATA4/5/6","EBF1/2/3/4","TBX1/10"),reduction.use = "pca")
+
+# PC2
+#  Mesenchymal Contamination
+doHeatMap(hpfall.remv1,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall.remv1,2) ,cells.use = pcTopCells(hpfall.remv1,2),col.use = col)
+pca.plot(hpfall.remv1,1,2)
+feature.plot(hpfall.remv1,c("RTP4","TWIST1"),reduction.use = "pca")
+
+# PC3
+# Heart vs Muscle split
+doHeatMap(hpfall.remv1,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall.remv1,3,do.balanced = T),cells.use = pcTopCells(hpfall.remv1,3),col.use = col)
+pca.plot(hpfall.remv1,1,3)
+feature.plot(hpfall.remv1,c("NKX2-3","EBF1/2/3/4","TBX1/10","GATA4/5/6"),reduction.use = "pca",dim.2 = 3)
+
+# PC4
+# Saperation by muscle/heart (MYO10, NOVA1/2) and technical noise
+doHeatMap(hpfall.remv1,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall.remv1,4),cells.use = pcTopCells(hpfall.remv1,4),col.use = col)  
+pca.plot(hpfall.remv1,1,4)
+feature.plot(hpfall.remv1,c("NKX2-3","EBF1/2/3/4","TBX1/10","GATA4/5/6"),reduction.use = "pca",dim.2 = 4)
+
+# PC5
+# Saperation by technical noise
+doHeatMap(hpfall.remv1,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall.remv1,5),cells.use = pcTopCells(hpfall.remv1,5),col.use = col)
+pca.plot(hpfall.remv1,1,5)
+feature.plot(hpfall.remv1,c("NKX2-3","EBF1/2/3/4","TBX1/10","GATA4/5/6"),reduction.use = "pca",dim.2 = 5)
+
+# Run tSNE using PC1-3 as input (spectral tSNE), we get distinct point clouds
+hpfall.remv1=run_tsne(hpfall.remv1,max_iter=2000,dims.use = 1:3)
+tsne.plot(hpfall.remv1,do.label = T,label.pt.size = 1)
+
+# Find cell clusters using Modularity optimization cluster detection.
+# k.param = 15 for optimization of detecting small subset of comtamination cells.
+hpfall.remv1 = FindClusters(hpfall.remv1, pc.use = 1:3, do.modularity = T,resolution = 1,prune.SNN = 0.1, print.output = 0,k.param = 15)
+tsne.plot(hpfall.remv1,do.label = T,label.pt.size = 1)
+
+# The non-TVC contamination cells are located in cluster 8,9,11,12
+doHeatMap(hpfall.remv1,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall.remv1,1) ,cells.use = pcTopCells(hpfall.remv1,1),col.use = col)
+
+# The mesenchymal contamination cells are located in cluster 12
+doHeatMap(hpfall.remv1,remove.key = T,slim.col.label = T,genes.use = pcTopGenes(hpfall.remv1,2) ,cells.use = pcTopCells(hpfall.remv1,2),col.use = col)
+
+# Find markers for these cells
+# Find cluster markers using ROC test with thresh.use = 1, min.pct = 0.5
+# The ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect). Though not a statistical test, it is often very useful for finding clean markers.
+
+# Find markers for mesenchymal cells
+mesen.marker=find.markers(hpfall.remv1,12,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(mesen.marker[order(mesen.marker$myAUC,decreasing = T),],20) 
+write.table(which.cells(hpfall.remv1,12),"mesen.cellname.txt")
+write.table(mesen.marker,"mesenchymal.marker.txt",row.names = T,col.names = NA,sep = "\t")
+
+# Find markers for the other group of cells by comparing to mesenchymal
+contam.marker=find.markers(hpfall.remv1,c(8,9,11),12,thresh.use = 1,test.use = "roc",min.pct = 0.5)
+head(contam.marker[order(contam.marker$myAUC,decreasing = T),],20) 
+write.table(which.cells(hpfall.remv1,c(8,9,11)),"contam.cellname.txt")
+write.table(contam.marker,"contam.marker.txt",row.names = T,col.names = NA,sep = "\t")
+
+# Remove contamination and mesenchymal cells
+hpfall.remv2=subsetData(hpfall.remv1,which.cells(hpfall.remv1,c(0:7,10,13)),do.scale = F)
+hpfall.remv2
+
+# Restore hpf labels
+hpfall.remv2@ident=factor(substring(hpfall.remv2@cell.names,1,5))
+names(hpfall.remv2@ident)=hpfall.remv2@cell.names
+
+# Gene detected in each time point
+boxPlot.FPKM(hpfall,"nGene",name.y = "Number of Genes",name.x = "",ratio.plot = 0.001,name = "Gene Detected")
+
+# Contamination cells are located
+save(hpfall.remv2,file = "hpfall.remv2.Robj")
+```
