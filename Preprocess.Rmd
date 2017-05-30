@@ -21,7 +21,7 @@ col=colorRampPalette(rev(brewer.pal(n=10, name="RdBu")))
 # read data
 hpf12.data=read.table("hpf12.txt",sep = "\t",header = T,row.names = 1)
 hpf14.data=read.table("hpf14.txt",sep = "\t",header = T,row.names = 1)
-hpf16.data=read.table("hpf16new.txt",sep = "\t",header = T,row.names = 1)
+hpf16.data=read.table("hpf16.txt",sep = "\t",header = T,row.names = 1)
 hpf18.data=read.table("hpf18.txt",sep="\t",header=TRUE,row.names=1)
 hpf20.data=read.table("hpf20.txt",sep="\t",header=TRUE,row.names=1)
 
