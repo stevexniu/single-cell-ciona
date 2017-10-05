@@ -3,6 +3,8 @@
 
 Note: to better reproduce the Rmarkdown output please install **Seurat v1.2**
 
+The accompany paper is on [bioRxiv](https://www.biorxiv.org/content/early/2017/06/16/150235).
+
 *functions.R* contains additional functions to run the Rmarkdowns.
 
 *Preprocess.Rmd* contains preprocessing steps.
